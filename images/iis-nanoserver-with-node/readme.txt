@@ -1,0 +1,14 @@
+--modify node versions in "dockerfile" (optional)
+--build docker image from "dockerfile"
+--->docker build -t jagrandd/iis:nanoserver-node.v8 .
+---or simply execute "build-image.bat"
+--create container and run it
+--->docker run -d -p 8181:80 --name test-iis jagrandd/iis:nanoserver-node.v8
+---or simply execute "start-container.bat"
+--test iis
+---open browser and point to http://localhost:8181
+---or use "docker inspect" and point to that IP address in the browser
+--test node in command prompt by connecting to container terminal
+--->docker exec -it test-iis cmd
+--->node -v
+--->npm -v

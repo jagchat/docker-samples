@@ -1,0 +1,1 @@
+docker run --rm -h test-rabbit -ti gsxsolutions/rmq:3.7.7
