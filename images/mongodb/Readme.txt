@@ -1,0 +1,22 @@
+--execute "build-image.bat"
+--execute "start-container.bat" (default port 27017)
+--get the ip of machine using the following command:
+--->docker inspect <container id> (say it is 172.21.133.110)
+---------------------------------------------------------------
+--download mongodb compass community edition (just zip/portable, if not willing to install)
+--execute "MongoDBCompassCommunity.exe" (or open MongoDB Compass, if installed)
+--provide following details to "connect to host" MongoDB and click "connect"
+-----Hostname: 172.21.133.110 (the ip received through docker inspect)
+-----Port: 27017 (change this if you happen to change/map the port)
+-----Favorite Name: test-mongo
+--create database with database name "SampleDb" and Collection (table) with name "employees"
+--add a couple of documents (rows) to collection "employees" (json records/objects)
+----------------------------------------------------------------
+--test mongo in command prompt by connecting to container terminal (mongodb shell)
+--->docker exec -it test-mongo cmd
+--->c:\>mongo 
+---> >show databases (or "db.getMongo().getDBNames()")
+---> >use SampleDb
+---> >show collections (or "show tables" or "db.getCollectionNames()")
+---> >db.employees.find() -> shows all documents
+---> >db.employees.find({empno: "1002"}) ->fetches one (unique) document
