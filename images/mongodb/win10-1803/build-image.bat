@@ -1,0 +1,1 @@
+docker build -t jagrandd/docker.v4.1 -f .\Dockerfile.4.1 .
