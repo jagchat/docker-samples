@@ -15,6 +15,7 @@ docker run --rm -it --hostname my-rabbit -p 15672:15672 -p 5672:5672 rabbitmq:3-
 - use http://localhost:15672 with creds: guest/guest 
 - configure RabbitMQ with "test-exchange" (as exchange) and "test-queue" (as queue) and bind them together (or import the config file 'config-export.json')
 - Build solution.
+```
 
 ## Scenarios
 
