@@ -1,0 +1,32 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: rabbitmq-consumer-scaler
+  namespace: rabbitmq-demo
+spec:
+  scaleTargetRef:
+    name: rabbitmq-consumer        # ← This references our consumer deployment
+  pollingInterval: 3              # Check every 3 seconds
+  cooldownPeriod: 30              # Wait 30 seconds before scaling down
+  minReplicaCount: 1              # Always keep at least 1 consumer
+  maxReplicaCount: 8              # Maximum 8 consumers
+  triggers:
+  - type: rabbitmq
+    metadata:
+      queueName: work_queue         # ← This is our queue name
+      queueLength: '3'              # Scale up when more than 3 messages per consumer
+      excludeUnacknowledged: 'false'
+    authenticationRef:
+      name: keda-rabbitmq-auth      # ← This references the TriggerAuthentication below
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-rabbitmq-auth
+  namespace: rabbitmq-demo
+spec:
+  secretTargetRef:
+  - parameter: host                 # ← KEDA expects 'host' parameter
+    name: keda-rabbitmq-secret     # ← This references the secret above
+    key: host                      # ← This is the key in the secret

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-publisher
+  namespace: rabbitmq-demo
+  labels:
+    app: rabbitmq-publisher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-publisher
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-publisher
+    spec:
+      containers:
+      - name: publisher
+        image: rabbitmq-publisher:local
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        # Use custom env var names to avoid Kubernetes auto-generated ones
+        - name: RABBITMQ_HOST
+          value: "rabbitmq"
+        - name: RABBITMQ_USERNAME
+          value: "admin"
+        - name: RABBITMQ_PASSWORD
+          value: "admin123"
+        - name: QUEUE_NAME
+          value: "work_queue"
+        - name: PORT
+          value: "8080"
+        # Don't set RABBITMQ_PORT - let it use default 5672
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-publisher-service
+  namespace: rabbitmq-demo
+  labels:
+    app: rabbitmq-publisher
+spec:
+  selector:
+    app: rabbitmq-publisher
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    nodePort: 30080
+  type: NodePort

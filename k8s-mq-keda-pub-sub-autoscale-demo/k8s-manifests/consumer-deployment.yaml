@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-consumer
+  namespace: rabbitmq-demo
+  labels:
+    app: rabbitmq-consumer
+spec:
+  replicas: 2  # Start with 2 consumers
+  selector:
+    matchLabels:
+      app: rabbitmq-consumer
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-consumer
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: consumer
+        image: rabbitmq-consumer:local
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: RABBITMQ_HOST
+          value: "rabbitmq"
+        - name: RABBITMQ_USERNAME
+          value: "admin"
+        - name: RABBITMQ_PASSWORD
+          value: "admin123"
+        - name: QUEUE_NAME
+          value: "work_queue"
+        - name: PORT
+          value: "8080"
+        - name: MIN_PROCESSING_TIME
+          value: "5.0"  # Longer processing time to see distribution
+        - name: MAX_PROCESSING_TIME
+          value: "10.0" # Longer processing time to see distribution
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            httpGet:
+              path: /shutdown
+              port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-consumer-service
+  namespace: rabbitmq-demo
+  labels:
+    app: rabbitmq-consumer
+spec:
+  selector:
+    app: rabbitmq-consumer
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    nodePort: 30081
+  type: NodePort

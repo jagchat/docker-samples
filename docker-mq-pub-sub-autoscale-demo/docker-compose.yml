@@ -1,0 +1,121 @@
+version: "3.9"
+
+name: myapp
+
+networks:
+  appnet:
+  logging:
+
+volumes:
+  loki-data:
+  grafana-data:
+
+services:
+  # ===== EXISTING SERVICES =====
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks: [appnet]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  worker:
+    build: ./worker
+    image: worker:latest
+    deploy:
+      replicas: 0
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks: [appnet, logging]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  autoscaler:
+    build: ./autoscaler
+    stop_grace_period: 30s
+    stop_signal: SIGTERM
+    environment:
+      RABBITMQ_API: http://rabbitmq:15672/api/queues/%2f/my-queue
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      QUEUE_NAME: my-queue
+      WORKER_IMAGE: worker:latest
+      MIN_CONTAINERS: 1
+      MAX_CONTAINERS: 10
+      SCALE_UP_THRESHOLD: 2
+      SCALE_DOWN_THRESHOLD: 1
+      MESSAGES_PER_WORKER: 1
+      POLL_INTERVAL: 3
+      COOLDOWN_PERIOD: 30
+      STOP_TIMEOUT: 120
+      DOCKER_NETWORK: myapp_appnet
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks: [appnet, logging]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  publisher:
+    build: ./publisher
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      QUEUE_NAME: my-queue
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8080:8080"
+    networks: [appnet, logging]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  # ===== LOGGING STACK =====
+  loki:
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki-data:/loki
+    networks: [logging]
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks: [logging]
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks: [logging]
+    depends_on:
+      - loki
+    restart: unless-stopped

@@ -1,0 +1,42 @@
+# RabbitMQ Configuration for KEDA Demo
+auth:
+  username: admin
+  password: admin123
+  # Enable guest user for easier development
+  enableGuestUser: true
+
+# Enable management plugin for web UI
+plugins: "rabbitmq_management rabbitmq_prometheus"
+
+# Resource limits for local development
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+
+# Service configuration
+service:
+  type: NodePort
+  nodePorts:
+    amqp: 30672      # AMQP port
+    manager: 31672   # Management UI port
+
+# Persistence (you can disable for demo)
+persistence:
+  enabled: true
+  size: 2Gi
+
+# Enable metrics for monitoring (useful with KEDA)
+metrics:
+  enabled: true
+  plugins: "rabbitmq_prometheus"
+  
+# Networking
+networkPolicy:
+  enabled: false
+
+# Single replica for local development
+replicaCount: 1
