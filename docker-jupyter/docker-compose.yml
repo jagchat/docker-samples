@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  datascience:
+    image: jupyter/datascience-notebook:latest
+    ports:
+      - "8888:8888" # Jupyter Lab
+      - "8080:8080" # VSCode Server (browser)
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./data:/home/jovyan/data
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - GRANT_SUDO=yes
+    container_name: datascience
+    user: root
+    command: >
+      bash -c "
+      curl -fsSL https://code-server.dev/install.sh | sh &&
+      code-server --bind-addr 0.0.0.0:8080 --auth none --disable-telemetry /home/jovyan/work > /tmp/code-server.log 2>&1 &
+      start-notebook.sh --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.disable_check_xsrf=True --NotebookApp.allow_origin='*' --NotebookApp.ip='0.0.0.0'
+      "
