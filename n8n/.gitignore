@@ -1,0 +1,2 @@
+# Exclude data folder containing Docker volumes
+data/
